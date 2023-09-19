@@ -1,6 +1,56 @@
 import librosa
 import numpy as np
 import resampy
+import struct
+
+def func_1(arr):
+    ###print(arr)
+    new_arr = []
+    b = []
+    a = 0
+    for i in arr:
+        if np.sign(i) == 1:
+            new_arr.append(np.abs(i)*2)
+        elif np.sign(i) == -1:
+            new_arr.append(np.abs(i)*2+1)
+        else:
+            pass
+    ##print(new_arr)
+    new_arr = int_to_bool(new_arr)
+    ##print(len(new_arr))
+    ###print(new_arr)
+    return new_arr
+
+def func_2(arr):
+    ###print(arr)
+    new_arr = []
+    a = bool_to_int(arr)
+    for i in a:
+        f = int(i/2)
+        if i%2 == 0:
+            new_arr.append(f)
+        else:
+            new_arr.append(f*-1)
+    ###print(new_arr)
+    return new_arr
+
+def int_to_bool(int_):
+    bytes_arr = b""
+    for i in range(len(int_)):
+        if int_[i] > 255:
+            int_[i] = 255
+        int_[i] = struct.pack("@B", int(int_[i]))
+    for i in int_:
+        bytes_arr += bytes(i)
+    #print(len(bytes_arr))
+    return bytes_arr
+
+def bool_to_int(bool_):
+    arr = []
+    for i in bool_:
+        arr.append(i)
+    ##print(arr)
+    return arr
 
 def point_listenable_mid(mid, side):
     mid_db = librosa.amplitude_to_db(mid)
@@ -51,12 +101,25 @@ def band_split(dat, band_num):
     div = int((ffted.shape[0]-1)/band_num)
     arr = np.zeros([div, ffted.shape[1]], dtype=np.complex128)
     band = []
-    for i in range(0, band_num):
+    for i in range(band_num):
         for j in range(ffted.shape[1]):
             sample = ffted[:,j]
             arr[:,j] = sample[i*div:(i+1)*div]
-        band.append(librosa.istft(arr, n_fft=div))
+        print(librosa.istft(arr))
+        band.append(librosa.istft(arr))
+        arr = np.zeros([div, ffted.shape[1]], dtype=np.complex128)
     return band
+
+def bands_mix(dat, length):
+    band_num = len(dat)
+    #print(band_num)
+    ffted_a = librosa.stft(np.array(dat[0]), n_fft=int(1024/band_num))
+    ffted = np.zeros([1024, int(length/1024*2)], dtype=np.complex128)
+    for i in range(band_num):
+        ffted_s = librosa.stft(np.array(dat[i]), n_fft=int(1024/band_num*2))
+        for j in range(ffted_s.shape[1]):
+            ffted[:,j][i*int(1024/band_num):(i+1)*int(1024/band_num)] = ffted_s[:,j][:int(1024/band_num)]
+    return librosa.istft(ffted)
 
 def select_zero_cross(db, zero_cross):
     ##print(zero_cross)
